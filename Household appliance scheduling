@@ -1,0 +1,66 @@
+matlab
+clc; clear; close all;
+
+hour = 0:23;
+tariff = [3 3 3 3 3 4 5 7 8 8 7 6 6 6 7 8 10 11 11 10 8 6 4 3];
+
+appliances = {'Washing Machine','Water Heater','Dishwasher'};
+power = [1 2 1.2];
+duration = [2 1 2];
+earliest = [0 5 18];
+deadline = [8 8 23];
+baselineStart = [7 6 20];
+
+n = length(appliances);
+baseline = zeros(n,24);
+optimized = zeros(n,24);
+
+for i = 1:n
+    for h = baselineStart(i):baselineStart(i)+duration(i)-1
+        baseline(i,h+1) = power(i);
+    end
+
+    bestCost = inf;
+    for s = earliest(i):deadline(i)-duration(i)
+        cost = sum(power(i)*tariff(s+1:s+duration(i)));
+        if cost < bestCost
+            bestCost = cost;
+            bestStart = s;
+        end
+    end
+
+    optimized(i,bestStart+1:bestStart+duration(i)) = power(i);
+end
+
+baseLoad = sum(baseline,1);
+optLoad = sum(optimized,1);
+
+baseCost = sum(baseLoad.*tariff);
+optCost = sum(optLoad.*tariff);
+savings = baseCost-optCost;
+
+disp('Optimized Appliance Schedule');
+for i = 1:n
+    fprintf('%s: %02d:00\n', appliances{i}, ...
+        find(optimized(i,:),1)-1);
+end
+
+fprintf('Baseline Cost: Rs. %.2f\n',baseCost);
+fprintf('Optimized Cost: Rs. %.2f\n',optCost);
+fprintf('Savings: Rs. %.2f\n',savings);
+
+figure;
+stairs(hour,tariff);
+title('Electricity Tariff');
+xlabel('Hour'); ylabel('Rs/kWh'); grid on;
+
+figure;
+plot(hour,baseLoad,'r-o',hour,optLoad,'b-s');
+legend('Before','After');
+title('Load Comparison');
+xlabel('Hour'); ylabel('Power (kW)'); grid on;
+
+figure;
+bar([baseCost optCost]);
+set(gca,'XTickLabel',{'Before','After'});
+ylabel('Cost (Rs)'); title('Cost Comparison'); grid on;
